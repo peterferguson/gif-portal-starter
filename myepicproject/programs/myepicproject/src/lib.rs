@@ -28,13 +28,21 @@ pub mod myepicproject {
     
     // - function with type signature
     // - Add a gif to the total_gif count on the base accout
-    pub fn add_gif(ctx: Context<AddGif>) -> ProgramResult {
+    pub fn add_gif(ctx: Context<AddGif>, gif_link: String) -> ProgramResult {
         // - Get a reference to the account & increment the gif total
         let base_account = &mut ctx.accounts.base_account;
+        let user  = &mut ctx.accounts.user;
+
+        // - Initialize the item for the gif_list
+        let item = ItemStruct {
+            gif_link: gif_link.to_string(),
+            linker_address: *user.to_account_info().key,
+        };
+
+        // - add the new gif to the list and update the count
+        base_account.gif_list.push(item);
         base_account.total_gifs += 1;
-
         Ok(())
-
     }
 }
 
@@ -67,8 +75,18 @@ pub struct StartStuffOff<'info> {
 pub struct AddGif<'info> {
   #[account(mut)]
   pub base_account: Account<'info, BaseAccount>,
+  #[account(mut)]
+  pub user: Signer<'info>,
 }
 
+
+// - The ItemStruct for storing the gif_url & the linkers publicKey
+// - This macro tells anchor how to serialize & deserialize the struct in the account 
+#[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
+pub struct ItemStruct {
+    pub gif_link: String,
+    pub linker_address: Pubkey,
+}
 
 // - Creating a solana account to store state
 #[account]
@@ -76,4 +94,7 @@ pub struct BaseAccount {
     // - The state of the account
     // - store the total number of gifs
     pub total_gifs: u64,
+    // - attach a list to track the gif_urls & the gif linkers publicKey
+    // - info on Vec can be found (https://doc.rust-lang.org/std/vec/struct.Vec.html)
+    pub gif_list: Vec<ItemStruct>,
 }
